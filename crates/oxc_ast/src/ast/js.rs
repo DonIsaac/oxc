@@ -893,6 +893,34 @@ pub enum Statement<'a> {
     ModuleDeclaration(Box<'a, ModuleDeclaration<'a>>),
     Declaration(Declaration<'a>),
 }
+impl<'a> Statement<'a> {
+    /// Returns `true` if this statement definitely branches, `false` if it
+    /// doesn't or is inconclusive
+    fn does_branch(&self) -> bool {
+        match self {
+            Statement::BlockStatement(_) => todo!(),
+            Statement::BreakStatement(_) => true,
+            Statement::ContinueStatement(_) => true,
+            Statement::DebuggerStatement(_) => false,
+            Statement::DoWhileStatement(_) => todo!(),
+            Statement::EmptyStatement(_) => false,
+            Statement::ExpressionStatement(_) => todo!(),
+            Statement::ForInStatement(_) => todo!(),
+            Statement::ForOfStatement(_) => todo!(),
+            Statement::ForStatement(_) => todo!(),
+            Statement::IfStatement(_) => todo!(),
+            Statement::LabeledStatement(_) => todo!(),
+            Statement::ReturnStatement(_) => todo!(),
+            Statement::SwitchStatement(_) => todo!(),
+            Statement::ThrowStatement(_) => true,
+            Statement::TryStatement(_) => todo!(),
+            Statement::WhileStatement(_) => todo!(),
+            Statement::WithStatement(_) => todo!(),
+            Statement::ModuleDeclaration(_) => todo!(),
+            Statement::Declaration(_) => todo!(),
+        }
+    }
+}
 
 /// Directive Prologue
 #[derive(Debug, Hash)]
