@@ -140,11 +140,8 @@ impl<'a> PeepholeFoldConstants {
         expr: &mut UnaryExpression<'a>,
         ctx: &mut TraverseCtx<'a>,
     ) -> Option<Expression<'a>> {
-        fn is_within_i32_range(x: f64) -> bool {
-            x.is_finite()
-                && x.fract() == 0.0
-                && x >= f64::from(i32::MIN)
-                && x <= f64::from(i32::MAX)
+        fn is_valid(x: f64) -> bool {
+            x.is_finite() && x.fract() == 0.0
         }
         match expr.operator {
             UnaryOperator::Void => self.try_reduce_void(expr, ctx),
@@ -198,7 +195,7 @@ impl<'a> PeepholeFoldConstants {
                         )
                     })
                 }
-                Expression::NumericLiteral(n) => is_within_i32_range(n.value).then(|| {
+                Expression::NumericLiteral(n) => is_valid(n.value).then(|| {
                     let value = !n.value.to_js_int_32();
                     ctx.ast.expression_numeric_literal(
                         SPAN,
@@ -234,8 +231,8 @@ impl<'a> PeepholeFoldConstants {
                         UnaryOperator::UnaryNegation if un.argument.is_number() => {
                             // `-~1` -> `2`
                             if let Expression::NumericLiteral(n) = &mut un.argument {
-                                is_within_i32_range(n.value).then(|| {
-                                    let value = !(-n.value.to_js_int_32());
+                                is_valid(n.value).then(|| {
+                                    let value = !n.value.to_js_int_32().wrapping_neg();
                                     ctx.ast.expression_numeric_literal(
                                         SPAN,
                                         value.into(),
@@ -840,17 +837,19 @@ impl<'a> PeepholeFoldConstants {
                 return None;
             }
 
-            let right_val_int = right_val as i32;
-            let bits = NumericLiteral::ecmascript_to_int32(left_val);
+            #[allow(clippy::cast_sign_loss)]
+            let right_val_int = right_val as u32;
+            let bits = left_val.to_js_int_32();
 
             let result_val: f64 = match op {
-                BinaryOperator::ShiftLeft => f64::from(bits << right_val_int),
-                BinaryOperator::ShiftRight => f64::from(bits >> right_val_int),
+                BinaryOperator::ShiftLeft => f64::from(bits.wrapping_shl(right_val_int)),
+                BinaryOperator::ShiftRight => f64::from(bits.wrapping_shr(right_val_int)),
                 BinaryOperator::ShiftRightZeroFill => {
                     // JavaScript always treats the result of >>> as unsigned.
                     // We must force Rust to do the same here.
                     #[allow(clippy::cast_sign_loss)]
-                    let res = bits as u32 >> right_val_int as u32;
+                    let bits = bits as u32;
+                    let res = bits.wrapping_shr(right_val_int);
                     f64::from(res)
                 }
                 _ => unreachable!("Unknown binary operator {:?}", op),
@@ -1005,8 +1004,8 @@ mod test {
 
         test("null == 0", "false");
         test("null == 1", "false");
-        // test("null == 0n", "false");
-        // test("null == 1n", "false");
+        test("null == 0n", "false");
+        test("null == 1n", "false");
         test("null == 'hi'", "false");
         test("null == true", "false");
         test("null == false", "false");
@@ -1046,16 +1045,16 @@ mod test {
         test("0 < null", "false");
         test("0 > null", "false");
         test("0 >= null", "true");
-        // test("0n < null", "false");
-        // test("0n > null", "false");
-        // test("0n >= null", "true");
+        test("0n < null", "false");
+        test("0n > null", "false");
+        test("0n >= null", "true");
         test("true > null", "true");
         test("'hi' < null", "false");
         test("'hi' >= null", "false");
         test("null <= null", "true");
 
         test("null < 0", "false");
-        // test("null < 0n", "false");
+        test("null < 0n", "false");
         test("null > true", "false");
         test("null < 'hi'", "false");
         test("null >= 'hi'", "false");
@@ -1371,8 +1370,8 @@ mod test {
         test("a=+-7", "a=-7");
         // test("a=+.5", "a=.5");
 
-        // test("a=~0xffffffff", "a=0");
-        // test("a=~~0xffffffff", "a=-1");
+        test("a=~0xffffffff", "a=0");
+        test("a=~~0xffffffff", "a=-1");
         // test_same("a=~.5", PeepholeFoldConstants.FRACTIONAL_BITWISE_OPERAND);
     }
 
@@ -1404,10 +1403,8 @@ mod test {
         test_same("a = ~b");
         test_same("a = ~NaN");
         test_same("a = ~-Infinity");
-        // TODO(7086cmd) We preserve it right now, since exceeded data's ~ calculation
-        // is hard to implement within one PR.
-        // test("x = ~2147483658.0", "x = 2147483647");
-        // test("x = ~-2147483658", "x = -2147483649");
+        test("x = ~2147483658.0", "x = 2147483637");
+        test("x = ~-2147483658", "x = -2147483639");
     }
 
     #[test]
@@ -1560,5 +1557,19 @@ mod test {
         test("1 << 32", "1<<32");
         test("1 << -1", "1<<-1");
         test("1 >> 32", "1>>32");
+
+        // Regression on #6161, ported from <https://github.com/tc39/test262/blob/main/test/language/expressions/unsigned-right-shift/S9.6_A2.2.js>.
+        test("-2147483647 >>> 0", "2147483649");
+        test("-2147483648 >>> 0", "2147483648");
+        test("-2147483649 >>> 0", "2147483647");
+        test("-4294967295 >>> 0", "1");
+        test("-4294967296 >>> 0", "0");
+        test("-4294967297 >>> 0", "4294967295");
+        test("4294967295 >>> 0", "4294967295");
+        test("4294967296 >>> 0", "0");
+        test("4294967297 >>> 0", "1");
+        test("8589934591 >>> 0", "4294967295");
+        test("8589934592 >>> 0", "0");
+        test("8589934593 >>> 0", "1");
     }
 }

@@ -2,16 +2,19 @@ use napi::Either;
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
 
-use oxc_allocator::Allocator;
-use oxc_codegen::CodegenReturn;
-use oxc_semantic::{ScopeTree, SemanticBuilder, SymbolTable};
-use oxc_span::SourceType;
-use oxc_transformer::{
-    InjectGlobalVariables, InjectGlobalVariablesConfig, InjectImport, ReplaceGlobalDefines,
-    ReplaceGlobalDefinesConfig, Transformer,
+use oxc::{
+    allocator::Allocator,
+    codegen::CodegenReturn,
+    napi::{source_map::SourceMap, transform::TransformOptions},
+    semantic::{ScopeTree, SemanticBuilder, SymbolTable},
+    span::SourceType,
+    transformer::{
+        InjectGlobalVariables, InjectGlobalVariablesConfig, InjectImport, ReplaceGlobalDefines,
+        ReplaceGlobalDefinesConfig, Transformer,
+    },
 };
 
-use crate::{context::TransformContext, isolated_declaration, SourceMap, TransformOptions};
+use crate::{context::TransformContext, isolated_declaration};
 
 // NOTE: Use JSDoc syntax for all doc comments, not rustdoc.
 // NOTE: Types must be aligned with [@types/babel__core](https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/babel__core/index.d.ts).
@@ -34,12 +37,12 @@ pub struct TransformResult {
     ///
     /// If parsing failed and `declaration` is set, this will be an empty string.
     ///
-    /// @see {@link TypeScriptBindingOptions#declaration}
+    /// @see {@link TypeScriptOptions#declaration}
     /// @see [declaration tsconfig option](https://www.typescriptlang.org/tsconfig/#declaration)
     pub declaration: Option<String>,
 
     /// Declaration source map. Only generated if both
-    /// {@link TypeScriptBindingOptions#declaration declaration} and
+    /// {@link TypeScriptOptions#declaration declaration} and
     /// {@link TransformOptions#sourcemap sourcemap} are set to `true`.
     pub declaration_map: Option<SourceMap>,
 
@@ -115,14 +118,13 @@ fn transpile(ctx: &TransformContext<'_>, options: Option<TransformOptions>) -> C
     let define = options.as_mut().and_then(|options| options.define.take());
     let inject = options.as_mut().and_then(|options| options.inject.take());
 
-    let options = options.map(oxc_transformer::TransformOptions::from).unwrap_or_default();
+    let options = options.map(oxc::transformer::TransformOptions::from).unwrap_or_default();
 
     let (mut symbols, mut scopes) = semantic_ret.semantic.into_symbol_table_and_scope_tree();
 
     let ret = Transformer::new(
         ctx.allocator,
         ctx.file_path(),
-        ctx.source_type(),
         ctx.source_text(),
         ctx.trivias.clone(),
         options,
