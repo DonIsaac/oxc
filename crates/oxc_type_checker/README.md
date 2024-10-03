@@ -1,6 +1,6 @@
 > I'm at a conference I'll flesh this out later
 
-# Goals
+# Overall Goals
 
 - Aquire type information for use in other tools (particularly linter and
   minifier)
@@ -30,4 +30,27 @@ The following are out of scope
 - Data in base `Type` interface is stored in `TypeTable`, a SoA structure. It's
   stored in an `Rc<RefCell<>>` within `TypeBuilder` to allow a shared mutable
   reference.
+- APIS for getting a type are in `checker/get_type`. `check*` functions (e.g.
+  `checkExpression`) are in `checker/check`. AST nodes implement the `Check` trait.
 
+# Local Goals
+First goal is a basic impl of `getTypeFromTypeNode`. Just being able to get a
+type from an annotaiton will be immediately useful for the linter. Ignoring
+generics is out of scope for this goal.
+### Types
+- [x] LiteralType
+- [x] Intrinsics
+- [x] Freshable types
+- [ ] TypeLiteral (object types)
+- [x] Union
+  - [ ] Union Reduction
+- [ ] Intersection
+- [ ] Signature
+- [ ] TypeParameter
+- [ ] TypeReference
+- [ ] TypeAlias
+
+Later on,
+- [ ] Mapped Types
+- [ ] function overloads
+- [ ] declaration merging
