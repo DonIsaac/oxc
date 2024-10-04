@@ -2031,6 +2031,7 @@ dependencies = [
  "oxc_allocator",
  "oxc_ast",
  "oxc_cfg",
+ "oxc_diagnostics",
  "oxc_index",
  "oxc_parser",
  "oxc_semantic",
