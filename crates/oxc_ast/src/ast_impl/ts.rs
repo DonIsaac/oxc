@@ -78,6 +78,12 @@ impl<'a> TSType<'a> {
     }
 }
 
+impl<'a> TSTypeReference<'a> {
+    pub fn is_const(&self) -> bool {
+        self.type_name.is_const() && self.type_parameters.is_none()
+    }
+}
+
 impl<'a> TSTypeName<'a> {
     pub fn get_first_name(name: &TSTypeName<'a>) -> IdentifierReference<'a> {
         match name {

@@ -201,21 +201,25 @@ impl<'a> GetTypeFromTypeNode<'a> for TSLiteralType<'a> {
         // }
         // return links.resolvedType;
         let ctx = CheckContext::default();
-        // FIXME: & -> &mut
-        // self.literal.check(checker, &ctx)
-        todo!("getRegularTypeOfLiteralType(checkExpression(node.literal))")
+        let ty = self.literal.check(checker, &ctx);
+        checker.get_regular_type_of_literal_type(ty)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSTypeReference<'a> {
     fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
+        // self.type_name.is_const()
         todo!("get_type_from_type_node(TSTypeReference): {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSTypePredicate<'a> {
     fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
-        todo!("get_type_from_type_node(TSTypePredicate): {:?}", self)
+        if self.asserts {
+            checker.intrinsics.void
+        } else {
+            checker.intrinsics.boolean
+        }
     }
 }
 
