@@ -37,11 +37,26 @@ impl<'a> Checker<'a> {
         }
     }
 
-    // function getRegularTypeOfLiteralType(type: Type): Type {
-    //     return type.flags & TypeFlags.Freshable ? (type as FreshableType).regularType :
-    //         type.flags & TypeFlags.Union ? ((type as UnionType).regularType || ((type as UnionType).regularType = mapType(type, getRegularTypeOfLiteralType) as UnionType)) :
-    //         type;
-    // }
+    /// ```typescript
+    /// function getRegularTypeOfLiteralType(type: Type): Type {
+    ///     return type.flags & TypeFlags.Freshable ? (type as FreshableType).regularType :
+    ///         type.flags & TypeFlags.Union ? ((type as UnionType).regularType || ((type as UnionType).regularType = mapType(type, getRegularTypeOfLiteralType) as UnionType)) :
+    ///         type;
+    /// }
+    /// ```
+    pub(crate) fn get_regular_type_of_literal_type(&self, type_id: TypeId) -> TypeId {
+        let ty = self.get_type(type_id);
+        match &*ty {
+            Type::Literal(lit) => match lit.as_ref() {
+                LiteralType::Fresh(_, regular_type_id) => regular_type_id.unwrap_or(type_id),
+                LiteralType::Regular(..) => type_id,
+            },
+            // TODO:
+            // type.flags & TypeFlags.Union ? ((type as UnionType).regularType || ((type as UnionType).regularType = mapType(type, getRegularTypeOfLiteralType) as UnionType)) :
+            // type;
+            _ => type_id,
+        }
+    }
 
     // function isFreshLiteralType(type: Type) {
     //     return !!(type.flags & TypeFlags.Freshable) && (type as LiteralType).freshType === type;

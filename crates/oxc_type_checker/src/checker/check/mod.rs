@@ -3,6 +3,7 @@
 
 mod expression;
 mod jsx;
+mod ts_type;
 
 use bitflags::bitflags;
 use oxc_ast::ast::Expression;
