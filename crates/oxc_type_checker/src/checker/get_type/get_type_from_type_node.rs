@@ -8,7 +8,7 @@ use super::{Checker, UnionReduction};
 
 /// See: checker.ts, line 19871, getTypeFromTypeNodeWorker
 pub(crate) trait GetTypeFromTypeNode<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId;
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId;
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSType<'a> {
@@ -114,7 +114,7 @@ impl<'a> GetTypeFromTypeNode<'a> for TSType<'a> {
     }
 
      */
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         match self {
             Self::TSAnyKeyword(_) => checker.intrinsics.any,
             Self::TSUnknownKeyword(_) => checker.intrinsics.unknown,
@@ -179,14 +179,14 @@ impl<'a> GetTypeFromTypeNode<'a> for TSType<'a> {
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSThisType {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("get_type_from_type_node(TSThisType): {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSLiteralType<'a> {
     // getTypeFromLiteralTypeNode
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         // if (node.literal.kind === SyntaxKind.NullKeyword) {
         //     return nullType;
         // }
@@ -208,13 +208,13 @@ impl<'a> GetTypeFromTypeNode<'a> for TSLiteralType<'a> {
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSTypeReference<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("get_type_from_type_node(TSTypeReference): {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSTypePredicate<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("get_type_from_type_node(TSTypePredicate): {:?}", self)
     }
 }
@@ -222,19 +222,19 @@ impl<'a> GetTypeFromTypeNode<'a> for TSTypePredicate<'a> {
 // SyntaxKind.ExpressionWithTypeArguments
 
 impl<'a> GetTypeFromTypeNode<'a> for TSTypeQuery<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("get_type_from_type_node(TSTypeQuery): {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSArrayType<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("getTypeFromArrayOrTupleTypeNode: {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSTupleType<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("getTypeFromArrayOrTupleTypeNode: {:?}", self)
     }
 }
@@ -248,7 +248,7 @@ impl<'a> GetTypeFromTypeNode<'a> for TSTupleType<'a> {
 //     return links.resolvedType;
 // }
 impl<'a> GetTypeFromTypeNode<'a> for TSUnionType<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         let types =
             self.types.iter().map(|ty| ty.get_type_from_type_node(checker)).collect::<Vec<_>>();
         // TODO
@@ -264,7 +264,7 @@ impl<'a> GetTypeFromTypeNode<'a> for TSUnionType<'a> {
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSIntersectionType<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("getTypeFromIntersectionTypeNode: {:?}", self)
     }
 }
@@ -273,13 +273,13 @@ impl<'a> GetTypeFromTypeNode<'a> for TSIntersectionType<'a> {
 // SyntaxKind.JSDocOptionalType
 
 impl<'a> GetTypeFromTypeNode<'a> for TSNamedTupleMember<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("getTypeFromNamedTupleTypeNode: {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSParenthesizedType<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         // return getTypeFromTypeNode((node as ParenthesizedTypeNode | JSDocTypeReferencingNode | JSDocTypeExpression | NamedTupleMember).type);
 
         self.type_annotation.get_type_from_type_node(checker)
@@ -292,19 +292,19 @@ impl<'a> GetTypeFromTypeNode<'a> for TSParenthesizedType<'a> {
 // SyntaxKind.JSDocVariadicType
 
 impl<'a> GetTypeFromTypeNode<'a> for TSFunctionType<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("getTypeFromTypeLiteralOrFunctionOrConstructorTypeNode: {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSConstructorType<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("getTypeFromTypeLiteralOrFunctionOrConstructorTypeNode: {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSTypeLiteral<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("getTypeFromTypeLiteralOrFunctionOrConstructorTypeNode: {:?}", self)
     }
 }
@@ -314,43 +314,43 @@ impl<'a> GetTypeFromTypeNode<'a> for TSTypeLiteral<'a> {
 // SyntaxKind.JSDocSignature
 
 impl<'a> GetTypeFromTypeNode<'a> for TSTypeOperator<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("getTypeFromTypeOperatorNode: {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSIndexedAccessType<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("getTypeFromIndexedAccessTypeNode: {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSMappedType<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("getTypeFromMappedTypeNode: {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSConditionalType<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("getTypeFromConditionalTypeNode: {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSInferType<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("getTypeFromInferTypeNode: {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSTemplateLiteralType<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("getTypeFromTemplateTypeNode: {:?}", self)
     }
 }
 
 impl<'a> GetTypeFromTypeNode<'a> for TSImportType<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         todo!("getTypeFromImportTypeNode: {:?}", self)
     }
 }
@@ -362,7 +362,7 @@ impl<'a> GetTypeFromTypeNode<'a> for TSImportType<'a> {
 // > Callers should first ensure this by calling `isPartOfTypeNode`
 // > TODO(rbuckton): These aren't valid TypeNodes, but we treat them as such because of `isPartOfTypeNode`, which returns `true` for things that aren't `TypeNode`s.
 impl<'a> GetTypeFromTypeNode<'a> for TSQualifiedName<'a> {
-    fn get_type_from_type_node(&self, checker: &Checker<'a>) -> TypeId {
+    fn get_type_from_type_node(&self, checker: &mut Checker<'a>) -> TypeId {
         // const symbol = getSymbolAtLocation(node);
         // return symbol ? getDeclaredTypeOfSymbol(symbol) : errorType;
         todo!("getDeclaredTypeOfSymbol: {:?}", self)

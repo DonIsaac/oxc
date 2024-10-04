@@ -24,7 +24,7 @@ impl<'a> Checker<'a> {
     /// }
     /// ```
     #[inline]
-    pub fn get_type_from_type_node(&self, type_node: &TSType<'a>) -> TypeId {
+    pub fn get_type_from_type_node(&mut self, type_node: &TSType<'a>) -> TypeId {
         type_node.get_type_from_type_node(self)
     }
 }

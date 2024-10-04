@@ -258,7 +258,7 @@ mod test {
     #[test]
     fn test_boolean() {
         let alloc = Allocator::default();
-        let checker = checker(&alloc, "");
+        let mut checker = checker(&alloc, "");
 
         // boolean
         let bool = TSType::TSBooleanKeyword(Box::new_in(
