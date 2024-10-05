@@ -14,16 +14,15 @@ use oxc_syntax::types::{ObjectFlags, TypeFlags, TypeId};
 use super::TypeTable;
 
 /// Creates new types and manages the memory arena.
-#[derive(Clone)]
 pub(crate) struct TypeBuilder<'a> {
     alloc: &'a Allocator,
-    table: Rc<RefCell<TypeTable<'a>>>,
+    table: RefCell<TypeTable<'a>>,
 }
 
 impl<'a> TypeBuilder<'a> {
     #[must_use]
     pub fn new(alloc: &'a Allocator) -> Self {
-        Self { alloc, table: Rc::new(RefCell::new(TypeTable::default())) }
+        Self { alloc, table: RefCell::new(TypeTable::default()) }
     }
 
     #[must_use]
@@ -83,11 +82,11 @@ impl<'a> TypeBuilder<'a> {
     }
 
     pub fn table(&self) -> Ref<'_, TypeTable<'a>> {
-        self.table.as_ref().borrow()
+        self.table.borrow()
     }
 
     pub fn table_mut(&self) -> RefMut<'_, TypeTable<'a>> {
-        self.table.as_ref().borrow_mut()
+        self.table.borrow_mut()
     }
 
     /// Creates an [`IntrinsicType`]
@@ -183,6 +182,22 @@ impl<'a> TypeBuilder<'a> {
             alias_symbol,
             alias_type_arguments.map(|args| self.vec_from_slice(args)),
         )
+    }
+
+    /// Equivalent to `createObjectType` in tsc.
+    pub fn create_empty_object_type(
+        &self,
+        object_flags: ObjectFlags,
+        symbol: Option<SymbolId>,
+    ) -> TypeId {
+        let ty = Type::Object(self.alloc(ObjectType {
+            object_flags,
+            call_signatures: None,
+            construct_signatures: None,
+            index_infos: self.vec(),
+        }));
+
+        self.table_mut().create_type(ty, TypeFlags::Object, symbol, None, None)
     }
 }
 
