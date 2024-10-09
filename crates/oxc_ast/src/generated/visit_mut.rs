@@ -1956,12 +1956,12 @@ pub mod walk_mut {
     ) {
         let kind = AstType::TSConditionalType;
         visitor.enter_node(kind);
-        visitor.enter_scope(ScopeFlags::empty(), &it.scope_id);
         visitor.visit_ts_type(&mut it.check_type);
+        visitor.enter_scope(ScopeFlags::empty(), &it.scope_id);
         visitor.visit_ts_type(&mut it.extends_type);
         visitor.visit_ts_type(&mut it.true_type);
-        visitor.visit_ts_type(&mut it.false_type);
         visitor.leave_scope();
+        visitor.visit_ts_type(&mut it.false_type);
         visitor.leave_node(kind);
     }
 
@@ -4109,7 +4109,7 @@ pub mod walk_mut {
         it: &mut TSModuleDeclarationName<'a>,
     ) {
         match it {
-            TSModuleDeclarationName::Identifier(it) => visitor.visit_identifier_name(it),
+            TSModuleDeclarationName::Identifier(it) => visitor.visit_binding_identifier(it),
             TSModuleDeclarationName::StringLiteral(it) => visitor.visit_string_literal(it),
         }
     }
