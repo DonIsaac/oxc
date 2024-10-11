@@ -238,13 +238,12 @@ mod test {
     use oxc_span::{SourceType, Span};
 
     fn checker<'a>(alloc: &'a Allocator, source_text: &'a str) -> Checker<'a> {
-        let ParserReturn { program, trivias, errors, panicked } =
+        let ParserReturn { program, errors, panicked, .. } =
             Parser::new(alloc, source_text, SourceType::ts()).parse();
         assert!(errors.is_empty(), "{errors:?}");
         assert!(!panicked);
 
-        let SemanticBuilderReturn { semantic, errors } = SemanticBuilder::new(source_text)
-            .with_trivias(trivias)
+        let SemanticBuilderReturn { semantic, errors } = SemanticBuilder::new()
             .with_check_syntax_error(true)
             .with_cfg(true)
             .with_build_jsdoc(true)
