@@ -88,7 +88,7 @@ use context::{Context, StatementContext};
 use oxc_allocator::Allocator;
 use oxc_ast::{
     ast::{Expression, Program, TSType},
-    AstBuilder, Trivias,
+    AstBuilder,
 };
 use oxc_diagnostics::{OxcDiagnostic, Result};
 use oxc_span::{ModuleKind, SourceType, Span};
@@ -156,8 +156,8 @@ pub struct ParserReturn<'a> {
     /// [`SemanticBuilder::with_check_syntax_error`](https://docs.rs/oxc_semantic/latest/oxc_semantic/struct.SemanticBuilder.html#method.with_check_syntax_error).
     pub errors: Vec<OxcDiagnostic>,
 
-    /// Comments and whitespace
-    pub trivias: Trivias,
+    /// Irregular whitespaces for `Oxlint`
+    pub irregular_whitespaces: Box<[Span]>,
 
     /// Whether the parser panicked and terminated early.
     ///
@@ -368,8 +368,11 @@ struct ParserImpl<'a> {
     /// Parsing context
     ctx: Context,
 
-    /// Ast builder for creating AST spans
+    /// Ast builder for creating AST nodes
     ast: AstBuilder<'a>,
+
+    /// Precomputed typescript detection
+    is_ts: bool,
 }
 
 impl<'a> ParserImpl<'a> {
@@ -396,6 +399,7 @@ impl<'a> ParserImpl<'a> {
             state: ParserState::default(),
             ctx: Self::default_context(source_type, options),
             ast: AstBuilder::new(allocator),
+            is_ts: source_type.is_typescript(),
         }
     }
 
@@ -412,6 +416,8 @@ impl<'a> ParserImpl<'a> {
                 let program = self.ast.program(
                     Span::default(),
                     self.source_type,
+                    self.source_text,
+                    self.ast.vec(),
                     None,
                     self.ast.vec(),
                     self.ast.vec(),
@@ -431,8 +437,9 @@ impl<'a> ParserImpl<'a> {
             errors.extend(self.lexer.errors);
             errors.extend(self.errors);
         }
-        let trivias = self.lexer.trivia_builder.build();
-        ParserReturn { program, errors, trivias, panicked }
+        let irregular_whitespaces =
+            self.lexer.trivia_builder.irregular_whitespaces.into_boxed_slice();
+        ParserReturn { program, errors, irregular_whitespaces, panicked }
     }
 
     pub fn parse_expression(mut self) -> std::result::Result<Expression<'a>, Vec<OxcDiagnostic>> {
@@ -469,7 +476,16 @@ impl<'a> ParserImpl<'a> {
         self.set_source_type_to_script_if_unambiguous();
 
         let span = Span::new(0, self.source_text.len() as u32);
-        Ok(self.ast.program(span, self.source_type, hashbang, directives, statements))
+        let comments = self.ast.vec_from_iter(self.lexer.trivia_builder.comments.iter().copied());
+        Ok(self.ast.program(
+            span,
+            self.source_type,
+            self.source_text,
+            comments,
+            hashbang,
+            directives,
+            statements,
+        ))
     }
 
     fn default_context(source_type: SourceType, options: ParseOptions) -> Context {
@@ -531,10 +547,6 @@ impl<'a> ParserImpl<'a> {
         self.errors.len() + self.lexer.errors.len()
     }
 
-    fn ts_enabled(&self) -> bool {
-        self.source_type.is_typescript()
-    }
-
     fn set_source_type_to_module_if_unambiguous(&mut self) {
         if self.source_type.is_unambiguous() {
             self.source_type = self.source_type.with_module(true);
@@ -552,7 +564,7 @@ impl<'a> ParserImpl<'a> {
 mod test {
     use std::path::Path;
 
-    use oxc_ast::{ast::Expression, CommentKind};
+    use oxc_ast::ast::{CommentKind, Expression};
 
     use super::*;
 
@@ -635,7 +647,7 @@ mod test {
         ];
         for (source, kind) in sources {
             let ret = Parser::new(&allocator, source, source_type).parse();
-            let comments = ret.trivias.comments().collect::<Vec<_>>();
+            let comments = &ret.program.comments;
             assert_eq!(comments.len(), 1, "{source}");
             assert_eq!(comments.first().unwrap().kind, kind, "{source}");
         }
