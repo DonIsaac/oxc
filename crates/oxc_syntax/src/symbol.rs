@@ -1,4 +1,5 @@
-use core::fmt;
+#![allow(missing_docs)] // fixme
+use std::fmt;
 
 use bitflags::bitflags;
 use nonmax::NonMaxU32;
