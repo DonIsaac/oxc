@@ -98,7 +98,7 @@ impl<'a> Checker<'a> {
                 None,
                 /* should this get set? */ None,
             );
-            self.cache.add_number(num, ty);
+            self.cache.set_number(num, ty);
             ty
         })
     }

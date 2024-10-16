@@ -155,7 +155,7 @@ impl Intrinsics {
         let boolean_union = cache.type_list(&[regular_false, regular_true]);
         let boolean =
             builder.create_union_type(&boolean_union, ObjectFlags::empty(), None, None, None);
-        cache.add_union(boolean_union, boolean);
+        cache.set_union(boolean_union, boolean);
 
         let es_symbol = builder.create_intrinsic_type(TypeFlags::ESSymbol, "symbol", None);
         let void = builder.create_intrinsic_type(TypeFlags::Void, "void", None);

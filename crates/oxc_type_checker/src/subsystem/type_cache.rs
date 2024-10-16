@@ -101,7 +101,7 @@ impl<'a> TypeCache<'a> {
         self.unions.borrow().get(types).copied()
     }
 
-    pub fn add_union(&self, types: TypeList<'a>, id: TypeId) {
+    pub fn set_union(&self, types: TypeList<'a>, id: TypeId) {
         let existing = self.unions.borrow_mut().insert(types, id);
         debug_assert!(existing.is_none());
     }
@@ -110,7 +110,7 @@ impl<'a> TypeCache<'a> {
         self.number_literals.borrow().get(value).copied()
     }
 
-    pub fn add_number(&self, value: Number, type_id: TypeId) {
+    pub fn set_number(&self, value: Number, type_id: TypeId) {
         let existing = self.number_literals.borrow_mut().insert(value, type_id);
         debug_assert!(existing.is_none());
     }
