@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 
 use crate::{codegen::LateCtx, schema::TypeDef};
@@ -7,16 +8,24 @@ use crate::{codegen::LateCtx, schema::TypeDef};
 mod clone_in;
 mod content_eq;
 mod content_hash;
+mod estree;
 mod get_span;
 
 pub use clone_in::DeriveCloneIn;
 pub use content_eq::DeriveContentEq;
 pub use content_hash::DeriveContentHash;
+pub use estree::DeriveESTree;
 pub use get_span::{DeriveGetSpan, DeriveGetSpanMut};
 
 pub trait Derive {
     fn trait_name() -> &'static str;
+
+    fn snake_name() -> String {
+        Self::trait_name().to_case(Case::Snake)
+    }
+
     fn derive(&mut self, def: &TypeDef, ctx: &LateCtx) -> TokenStream;
+
     fn prelude() -> TokenStream {
         TokenStream::default()
     }
@@ -40,10 +49,10 @@ macro_rules! define_derive {
                 let prelude = Self::prelude();
 
                 // from `x::y::z` to `crate::y::z::*`
-                let use_modules = module_paths.into_iter().map(|it|{
+                let use_modules = module_paths.into_iter().map(|it| {
                     let local_path = ["crate"]
                         .into_iter()
-                        .chain(it.split("::").skip(1))
+                        .chain(it.strip_suffix("::mod").unwrap_or(it).split("::").skip(1))
                         .chain(["*"])
                         .join("::");
                     let use_module: syn::ItemUse =
@@ -78,13 +87,13 @@ macro_rules! define_derive {
 
             fn run(&mut self, ctx: &$crate::codegen::LateCtx) -> $crate::Result<Self::Output> {
                 use std::vec::Vec;
-                use convert_case::{Case, Casing};
                 use itertools::Itertools;
                 use rustc_hash::{FxHashMap, FxHashSet};
 
                 use $crate::derives::DeriveTemplate;
 
                 let trait_name = Self::trait_name();
+                let filename = format!("derive_{}.rs", Self::snake_name());
                 let output = ctx
                     .schema()
                     .into_iter()
@@ -106,10 +115,11 @@ macro_rules! define_derive {
                     .fold(Vec::new(), |mut acc, (path, (modules, streams))| {
                         let mut modules = Vec::from_iter(modules);
                         modules.sort();
+
                         acc.push((
                             $crate::output(
                                 format!("crates/{}", path.split("::").next().unwrap()).as_str(),
-                                format!("derive_{}.rs", Self::trait_name().to_case(Case::Snake)).as_str()
+                                &filename,
                             ),
                             Self::template(
                                 modules,
