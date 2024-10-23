@@ -325,6 +325,7 @@ mod parser_parse {
             parser.parse_expression()
         }
 
+        /// Part a single [TypeScript type](TSType)
         pub fn parse_type(self) -> std::result::Result<TSType<'a>, Vec<OxcDiagnostic>> {
             let unique = UniquePromise::new();
             let parser = ParserImpl::new(

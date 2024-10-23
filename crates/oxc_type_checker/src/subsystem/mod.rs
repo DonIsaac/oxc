@@ -1,5 +1,5 @@
-//! Subsystems internal to [`Checker`] that, when composed, form the bulk of
-//! Checker's structure.
+//! Subsystems internal to [`Checker`](crate::Checker) that, when composed, form
+//! the bulk of Checker's structure.
 #![allow(unused_imports)]
 
 mod intrinsics;

@@ -71,11 +71,10 @@ impl<'a> TypeBuilder<'a> {
     /// Creates a new empty [`String`] with a particular capacity.
     ///
     /// `String`s have an internal buffer to hold their data. The capacity is
-    /// the length of that buffer, and can be queried with the [`capacity`]
-    /// method. This method creates an empty `String`, but one with an initial
-    /// buffer that can hold `capacity` bytes. This is useful when you may be
-    /// appending a bunch of data to the `String`, reducing the number of
-    /// reallocations it needs to do.
+    /// the length of that buffer. This method creates an empty `String`, but
+    /// one with an initial buffer that can hold `capacity` bytes. This is
+    /// useful when you may be appending a bunch of data to the `String`,
+    /// reducing the number of reallocations it needs to do.
     #[must_use]
     pub fn string_with_capacity(&self, capacity: usize) -> String<'a> {
         String::with_capacity_in(capacity, self.alloc)
