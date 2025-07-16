@@ -15,6 +15,25 @@ use super::Checker;
 // Public Checker API
 
 impl<'a> Checker<'a> {
+    /// <details><summary>checkExpression in tsc</summary>
+    ///
+    /// ```typescript
+    /// function checkExpression(node: Expression | QualifiedName, checkMode?: CheckMode, forceTuple?: boolean): Type {
+    ///     tracing?.push(tracing.Phase.Check, "checkExpression", { kind: node.kind, pos: node.pos, end: node.end, path: (node as TracingNode).tracingPath });
+    ///     const saveCurrentNode = currentNode;
+    ///     currentNode = node;
+    ///     instantiationCount = 0;
+    ///     const uninstantiatedType = checkExpressionWorker(node, checkMode, forceTuple);
+    ///     const type = instantiateTypeWithSingleGenericCallSignature(node, uninstantiatedType, checkMode);
+    ///     if (isConstEnumObjectType(type)) {
+    ///         checkConstEnumAccess(node, type);
+    ///     }
+    ///     currentNode = saveCurrentNode;
+    ///     tracing?.pop();
+    ///     return type;
+    /// }
+    /// ```
+    /// </details>
     #[inline]
     pub fn check_expression(&mut self, expr: &Expression<'a>) -> TypeId {
         expr.check(self, &CheckContext::default())
@@ -29,6 +48,40 @@ impl<'a> Checker<'a> {
     ) -> TypeId {
         let ctx = CheckContext { mode: check_mode, force_tuple, ..Default::default() };
         expr.check(self, &ctx)
+    }
+
+    /// ```typescript
+    /// function checkExpressionCached(node: Expression | QualifiedName, checkMode?: CheckMode): Type {
+    ///     if (checkMode) {
+    ///         return checkExpression(node, checkMode);
+    ///     }
+    ///     const links = getNodeLinks(node);
+    ///     if (!links.resolvedType) {
+    ///         // When computing a type that we're going to cache, we need to ignore any ongoing control flow
+    ///         // analysis because variables may have transient types in indeterminable states. Moving flowLoopStart
+    ///         // to the top of the stack ensures all transient types are computed from a known point.
+    ///         const saveFlowLoopStart = flowLoopStart;
+    ///         const saveFlowTypeCache = flowTypeCache;
+    ///         flowLoopStart = flowLoopCount;
+    ///         flowTypeCache = undefined;
+    ///         links.resolvedType = checkExpression(node, checkMode);
+    ///         flowTypeCache = saveFlowTypeCache;
+    ///         flowLoopStart = saveFlowLoopStart;
+    ///     }
+    ///     return links.resolvedType;
+    /// }
+    /// ```
+    pub(crate) fn check_expression_cached(
+        &mut self,
+        node: &Expression<'a>,
+        ctx: &CheckContext,
+    ) -> TypeId {
+        if !ctx.mode.is_normal() {
+            return node.check(self, ctx);
+        }
+
+        // todo: store & restore flow node state
+        node.check(self, ctx)
     }
 }
 
@@ -65,6 +118,40 @@ impl Default for CheckMode {
     fn default() -> Self {
         Self::Normal
     }
+}
+impl CheckMode {
+    #[inline]
+    pub fn is_normal(self) -> bool {
+        self.contains(Self::Normal)
+    }
+    // #[inline]
+    // pub fn is_contextual(self) -> bool {
+    //     self.contains(Self::Contextual)
+    // }
+    // #[inline]
+    // pub fn is_inferential(self) -> bool {
+    //     self.contains(Self::Inferential)
+    // }
+    // #[inline]
+    // pub fn is_skip_context_sensitive(self) -> bool {
+    //     self.contains(Self::SkipContextSensitive)
+    // }
+    // #[inline]
+    // pub fn is_skip_generic_functions(self) -> bool {
+    //     self.contains(Self::SkipGenericFunctions)
+    // }
+    // #[inline]
+    // pub fn is_for_signature_help(self) -> bool {
+    //     self.contains(Self::IsForSignatureHelp)
+    // }
+    // #[inline]
+    // pub fn is_rest_binding_element(self) -> bool {
+    //     self.contains(Self::RestBindingElement)
+    // }
+    // #[inline]
+    // pub fn is_type_only(self) -> bool {
+    //     self.contains(Self::TypeOnly)
+    // }
 }
 
 #[derive(Debug, Default, Clone /* intentionally not copy */)]
